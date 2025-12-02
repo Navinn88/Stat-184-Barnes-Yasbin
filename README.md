@@ -24,5 +24,5 @@ Use this section to explain the structure of your repo. This should help visitor
 
 
 ## Authors
-
-Give information about who are the authors of the project and how people can get in touch if they have questions.
+Harvey Barnes hab5455@psu.edu
+Noah Yasbin
