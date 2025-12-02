@@ -68,7 +68,7 @@ games_rolling <- games_team %>%
   mutate(
     games_played_prior = row_number() - 1L,
 
-    # cumulative totals BEFORE this game ---------------------------------
+    # cumulative BEFORE this game
     cum_yds_for       = lag(cumsum(yds_for),       default = 0),
     cum_yds_against   = lag(cumsum(yds_against),   default = 0),
     cum_yds_diff      = cum_yds_for - cum_yds_against,
@@ -81,41 +81,38 @@ games_rolling <- games_team %>%
     cum_pts_against   = lag(cumsum(pts_against),   default = 0),
     cum_pts_diff      = cum_pts_for - cum_pts_against,
 
-    # cumulative turnovers BEFORE this game -------------------------------
     cum_to_for        = lag(cumsum(turnovers_for),     default = 0),
     cum_to_against    = lag(cumsum(turnovers_against), default = 0),
     cum_to_diff       = cum_to_for - cum_to_against,
 
-    # optional averages & win% --------------------------------------------
-    avg_yds_for       = if_else(
-      games_played_prior > 0,
-      cum_yds_for / games_played_prior,
-      NA_real_
-    ),
-    avg_yds_against   = if_else(
-      games_played_prior > 0,
-      cum_yds_against / games_played_prior,
-      NA_real_
-    ),
+    # per-game averages ----------------------------------------------------
+    avg_yds_for       = if_else(games_played_prior > 0,
+                                cum_yds_for / games_played_prior, NA_real_),
+    avg_yds_against   = if_else(games_played_prior > 0,
+                                cum_yds_against / games_played_prior, NA_real_),
+    avg_yds_diff      = avg_yds_for - avg_yds_against,
 
-    avg_to_for        = if_else(
-      games_played_prior > 0,
-      cum_to_for / games_played_prior,
-      NA_real_
-    ),
-    avg_to_against    = if_else(
-      games_played_prior > 0,
-      cum_to_against / games_played_prior,
-      NA_real_
-    ),
+    avg_pts_for       = if_else(games_played_prior > 0,
+                                cum_pts_for / games_played_prior, NA_real_),
+    avg_pts_against   = if_else(games_played_prior > 0,
+                                cum_pts_against / games_played_prior, NA_real_),
+    avg_pts_diff      = avg_pts_for - avg_pts_against,
 
-    win_pct           = if_else(
-      games_played_prior > 0,
-      cum_wins / games_played_prior,
-      NA_real_
-    )
+    avg_to_for        = if_else(games_played_prior > 0,
+                                cum_to_for / games_played_prior, NA_real_),
+    avg_to_against    = if_else(games_played_prior > 0,
+                                cum_to_against / games_played_prior, NA_real_),
+    avg_to_diff       = avg_to_for - avg_to_against,
+
+    # home-field indicator -------------------------------------------------
+    is_home           = as.integer(home_away == "home_team"),
+
+    # season win % ---------------------------------------------------------
+    win_pct           = if_else(games_played_prior > 0,
+                                cum_wins / games_played_prior, NA_real_)
   ) %>%
   ungroup()
+
 
 # Create feature_df for plotting ------------------------------------------
 
