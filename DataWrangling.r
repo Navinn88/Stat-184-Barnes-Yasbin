@@ -21,13 +21,6 @@ games <- readr::read_csv(
 
 # Clean attendance & standings (optional, not used later) -----------------
 
-attendance_clean <- attendance %>%
-  mutate(team = paste(team, team_name)) %>%  # combine into one column called 'team'
-  select(-team_name)
-
-Standings_clean <- standings %>%
-  mutate(team = paste(team, team_name)) %>%  # combine into one column called 'team'
-  select(-team_name)
 
 # Team-game level data ----------------------------------------------------
 
