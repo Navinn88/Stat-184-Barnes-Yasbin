@@ -114,33 +114,48 @@ games_rolling <- games_team %>%
   ungroup()
 
 
-# Create feature_df for plotting ------------------------------------------
-
-feature_df <- games_rolling %>%
-  filter(games_played_prior >= 4)   # optional: only after some history
-
-# Long-format metrics for faceted plot -----------------------------------
-
-metrics_long <- feature_df %>%
-  select(win, cum_pts_diff, cum_yds_diff, cum_wins, cum_to_diff) %>%
-  pivot_longer(
-    cols = c(cum_pts_diff, cum_yds_diff, cum_wins, cum_to_diff),
-    names_to = "metric",
-    values_to = "value"
+team_stats <- games_rolling %>%
+  filter(games_played_prior >= 4) %>%          # only games with history
+  select(
+    game_id, team, home_away, win,
+    win_pct,
+    avg_pts_diff, avg_yds_diff, avg_to_diff,
+    cum_pts_diff, cum_yds_diff, cum_to_diff
   )
 
-# Plot --------------------------------------------------------------------
+# separate home and away teams --------------------------------------------
+home_stats <- team_stats %>%
+  filter(home_away == "home_team") %>%
+  rename_with(~ paste0(.x, "_home"),
+              c(team, home_away, win, win_pct,
+                avg_pts_diff, avg_yds_diff, avg_to_diff,
+                cum_pts_diff, cum_yds_diff, cum_to_diff))
 
-ggplot(metrics_long, aes(x = value, y = win)) +
-  geom_jitter(height = 0.05, width = 0, alpha = 0.1) +
-  geom_smooth(
-    method = "glm",
-    method.args = list(family = "binomial"),
-    se = FALSE
-  ) +
-  facet_wrap(~ metric, scales = "free_x") +
-  labs(
-    x = "Metric value before game",
-    y = "Probability of winning this game",
-    title = "How different rolling metrics relate to winning the next game"
+away_stats <- team_stats %>%
+  filter(home_away == "away_team") %>%
+  rename_with(~ paste0(.x, "_away"),
+              c(team, home_away, win, win_pct,
+                avg_pts_diff, avg_yds_diff, avg_to_diff,
+                cum_pts_diff, cum_yds_diff, cum_to_diff))
+
+# one row per game: home vs away ------------------------------------------
+games_model <- home_stats %>%
+  inner_join(away_stats, by = "game_id") %>%
+  mutate(
+    # outcome we predict: did the home team win?
+    win_home = win_home,
+
+    # opponent-relative features (home minus away)
+    delta_win_pct  = win_pct_home      - win_pct_away,
+    delta_pts_diff = avg_pts_diff_home - avg_pts_diff_away,
+    delta_yds_diff = avg_yds_diff_home - avg_yds_diff_away,
+    delta_to_diff  = avg_to_diff_home  - avg_to_diff_away
   )
+library(ranger)
+
+rf_mod <- ranger(
+  win_home ~ delta_win_pct + delta_pts_diff + delta_yds_diff + delta_to_diff,
+  data = games_model,
+  probability = TRUE,  # so you get win probabilities, not just classes
+  num.trees = 500
+)
