@@ -49,7 +49,11 @@ games_team <- games %>%
     pts_for       = if_else(team == winner, pts_win,  pts_loss),
     pts_against   = if_else(team == winner, pts_loss, pts_win),
 
-    # result flags
+    # turnovers for & against ---------------------------------------------
+    turnovers_for     = if_else(team == winner, turnovers_win,  turnovers_loss),
+    turnovers_against = if_else(team == winner, turnovers_loss, turnovers_win),
+
+    # result flags ---------------------------------------------------------
     win      = as.integer(team == winner & is.na(tie)),
     loss     = as.integer(team != winner & is.na(tie)),
     tie_flag = as.integer(!is.na(tie))
@@ -64,31 +68,48 @@ games_rolling <- games_team %>%
   mutate(
     games_played_prior = row_number() - 1L,
 
-    # cumulative totals BEFORE this game
-    cum_yds_for     = lag(cumsum(yds_for),     default = 0),
-    cum_yds_against = lag(cumsum(yds_against), default = 0),
-    cum_yds_diff    = cum_yds_for - cum_yds_against,
+    # cumulative totals BEFORE this game ---------------------------------
+    cum_yds_for       = lag(cumsum(yds_for),       default = 0),
+    cum_yds_against   = lag(cumsum(yds_against),   default = 0),
+    cum_yds_diff      = cum_yds_for - cum_yds_against,
 
-    cum_wins        = lag(cumsum(win),        default = 0),
-    cum_losses      = lag(cumsum(loss),       default = 0),
-    cum_ties        = lag(cumsum(tie_flag),   default = 0),
+    cum_wins          = lag(cumsum(win),          default = 0),
+    cum_losses        = lag(cumsum(loss),         default = 0),
+    cum_ties          = lag(cumsum(tie_flag),     default = 0),
 
-    cum_pts_for     = lag(cumsum(pts_for),     default = 0),
-    cum_pts_against = lag(cumsum(pts_against), default = 0),
-    cum_pts_diff    = cum_pts_for - cum_pts_against,
+    cum_pts_for       = lag(cumsum(pts_for),       default = 0),
+    cum_pts_against   = lag(cumsum(pts_against),   default = 0),
+    cum_pts_diff      = cum_pts_for - cum_pts_against,
 
-    # optional averages & win%
-    avg_yds_for     = if_else(
+    # cumulative turnovers BEFORE this game -------------------------------
+    cum_to_for        = lag(cumsum(turnovers_for),     default = 0),
+    cum_to_against    = lag(cumsum(turnovers_against), default = 0),
+    cum_to_diff       = cum_to_for - cum_to_against,
+
+    # optional averages & win% --------------------------------------------
+    avg_yds_for       = if_else(
       games_played_prior > 0,
       cum_yds_for / games_played_prior,
       NA_real_
     ),
-    avg_yds_against = if_else(
+    avg_yds_against   = if_else(
       games_played_prior > 0,
       cum_yds_against / games_played_prior,
       NA_real_
     ),
-    win_pct         = if_else(
+
+    avg_to_for        = if_else(
+      games_played_prior > 0,
+      cum_to_for / games_played_prior,
+      NA_real_
+    ),
+    avg_to_against    = if_else(
+      games_played_prior > 0,
+      cum_to_against / games_played_prior,
+      NA_real_
+    ),
+
+    win_pct           = if_else(
       games_played_prior > 0,
       cum_wins / games_played_prior,
       NA_real_
@@ -104,9 +125,9 @@ feature_df <- games_rolling %>%
 # Long-format metrics for faceted plot -----------------------------------
 
 metrics_long <- feature_df %>%
-  select(win, cum_pts_diff, cum_yds_diff, cum_wins) %>%
+  select(win, cum_pts_diff, cum_yds_diff, cum_wins, cum_to_diff) %>%
   pivot_longer(
-    cols = c(cum_pts_diff, cum_yds_diff, cum_wins),
+    cols = c(cum_pts_diff, cum_yds_diff, cum_wins, cum_to_diff),
     names_to = "metric",
     values_to = "value"
   )
