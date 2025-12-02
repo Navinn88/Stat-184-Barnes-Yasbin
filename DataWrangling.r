@@ -1,25 +1,38 @@
-library(readr)  
+# Libraries ---------------------------------------------------------------
+
+library(readr)
 library(dplyr)
-attendance <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/attendance.csv')
-standings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/standings.csv')
-games <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/games.csv')
+library(tidyr)
+library(ggplot2)
+
+# Data --------------------------------------------------------------------
+
+attendance <- readr::read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/attendance.csv"
+)
+
+standings <- readr::read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/standings.csv"
+)
+
+games <- readr::read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/games.csv"
+)
+
+# Clean attendance & standings (optional, not used later) -----------------
 
 attendance_clean <- attendance %>%
   mutate(team = paste(team, team_name)) %>%  # combine into one column called 'team'
-  select(-team_name)                         # drop the old team_name column
-attendance_clean
-
+  select(-team_name)
 
 Standings_clean <- standings %>%
   mutate(team = paste(team, team_name)) %>%  # combine into one column called 'team'
-  select(-team_name)                         # drop the old team_name column
-Standings_clean
+  select(-team_name)
 
-library(dplyr)
-library(tidyr)
+# Team-game level data ----------------------------------------------------
 
 games_team <- games %>%
-  mutate(game_id = row_number()) %>%  # optional, just a unique id
+  mutate(game_id = row_number()) %>%  # unique id per game
 
   # Make two rows per game: one for home_team, one for away_team
   pivot_longer(
@@ -43,6 +56,8 @@ games_team <- games %>%
   ) %>%
   arrange(team, year, week, date, time)
 
+# Rolling stats -----------------------------------------------------------
+
 games_rolling <- games_team %>%
   group_by(team, year) %>%
   arrange(week, date, time, .by_group = TRUE) %>%
@@ -57,17 +72,57 @@ games_rolling <- games_team %>%
     cum_wins        = lag(cumsum(win),        default = 0),
     cum_losses      = lag(cumsum(loss),       default = 0),
     cum_ties        = lag(cumsum(tie_flag),   default = 0),
-    
+
     cum_pts_for     = lag(cumsum(pts_for),     default = 0),
     cum_pts_against = lag(cumsum(pts_against), default = 0),
     cum_pts_diff    = cum_pts_for - cum_pts_against,
 
     # optional averages & win%
-    avg_yds_for     = if_else(games_played_prior > 0,
-                              cum_yds_for / games_played_prior, NA_real_),
-    avg_yds_against = if_else(games_played_prior > 0,
-                              cum_yds_against / games_played_prior, NA_real_),
-    win_pct         = if_else(games_played_prior > 0,
-                              cum_wins / games_played_prior, NA_real_)
+    avg_yds_for     = if_else(
+      games_played_prior > 0,
+      cum_yds_for / games_played_prior,
+      NA_real_
+    ),
+    avg_yds_against = if_else(
+      games_played_prior > 0,
+      cum_yds_against / games_played_prior,
+      NA_real_
+    ),
+    win_pct         = if_else(
+      games_played_prior > 0,
+      cum_wins / games_played_prior,
+      NA_real_
+    )
   ) %>%
   ungroup()
+
+# Create feature_df for plotting ------------------------------------------
+
+feature_df <- games_rolling %>%
+  filter(games_played_prior >= 4)   # optional: only after some history
+
+# Long-format metrics for faceted plot -----------------------------------
+
+metrics_long <- feature_df %>%
+  select(win, cum_pts_diff, cum_yds_diff, cum_wins) %>%
+  pivot_longer(
+    cols = c(cum_pts_diff, cum_yds_diff, cum_wins),
+    names_to = "metric",
+    values_to = "value"
+  )
+
+# Plot --------------------------------------------------------------------
+
+ggplot(metrics_long, aes(x = value, y = win)) +
+  geom_jitter(height = 0.05, width = 0, alpha = 0.1) +
+  geom_smooth(
+    method = "glm",
+    method.args = list(family = "binomial"),
+    se = FALSE
+  ) +
+  facet_wrap(~ metric, scales = "free_x") +
+  labs(
+    x = "Metric value before game",
+    y = "Probability of winning this game",
+    title = "How different rolling metrics relate to winning the next game"
+  )
