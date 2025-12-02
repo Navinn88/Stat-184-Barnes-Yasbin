@@ -15,6 +15,10 @@ standings <- readr::read_csv(
   "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/standings.csv"
 )
 
+games <- readr::read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/games.csv"
+)
+
 games_team <- games %>%
   mutate(game_id = row_number()) %>%
   pivot_longer(
