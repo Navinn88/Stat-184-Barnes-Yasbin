@@ -57,6 +57,10 @@ games_rolling <- games_team %>%
     cum_wins        = lag(cumsum(win),        default = 0),
     cum_losses      = lag(cumsum(loss),       default = 0),
     cum_ties        = lag(cumsum(tie_flag),   default = 0),
+    
+    cum_pts_for     = lag(cumsum(pts_for),     default = 0),
+    cum_pts_against = lag(cumsum(pts_against), default = 0),
+    cum_pts_diff    = cum_pts_for - cum_pts_against,
 
     # optional averages & win%
     avg_yds_for     = if_else(games_played_prior > 0,
