@@ -1,27 +1,26 @@
 # Project Title
 
-Write a 1-2 sentences that quickly and clearly convey what your repo is for.
+This project analyzes NFL attendance data and builds rolling performance metrics to explore how team level trends relate to the probability of winning the next game. The repository contains data cleaning, feature engineering, and visualization steps used to uncover game level and season level patterns.
 
 ## Overview
 
-Expand on those introductory sentences with a brief but informative description of your project's purpose and goals. This section should help visitors decide whether they should dig deeper into your repo/project.
+The goal of this project is to analyze how cumulative turnover differential, cumulative point differential, and cumulative yards differential relate to a team’s likelihood of winning its next NFL game. The data used in this project comes from publicly available NFL attendance, standings, and game level datasets found on GitHub. These files are merged into a team game panel and used to construct rolling performance metrics such as cumulative turnover differential, cumulative point differential, and cumulative yards differential. One interesting finding from our exploratory analysis is that teams with strong rolling point differential even if their overall record is mediocre show a noticeably higher chance of winning the following game.
 
-### Interesting Insight (Optional)
-
-This is optional but highly recommended. You'll include one interesting insight from your project as part of the README. This insight is most effective when you include a visual. Keep in mind that this visual must be included as an image file (e.g., JPG, PNG, etc.). You can export plots created with `{ggplot2}` by using the function `ggsave`.
-
-## Data Sources and Acknowledgements
-
-Be sure to list where you got any data used within the project. Be sure to acknowledge any one whose work or elements you're drawing upon.
 
 ## Current Plan
 
-Provide some information about what you intend to doe with the project. You can additionally refer the visitor to your detailed plan document.
+Our current plan is to refine the rolling metrics, build additional predictive features, and evaluate which indicators are most strongly associated with next-game outcomes.
 
 ## Repo Structure
 
-Use this section to explain the structure of your repo. This should help visitors quickly figure out where they should look to find certain elements. Further, you can use this space to highlight and briefly explain important/key files in the repo.
+1. data/ – Contains cleaned datasets and any derived files created during the feature engineering process.
 
+2. scripts/ – Includes R scripts for data cleaning, merging attendance with game logs, generating rolling metrics, and creating visualizations.
+
+3. plots/ – Stores exported images created with ggplot2, including rolling metric trends and win probability visuals.
+
+4. README & plan documents Provide project context, goals, workflow explanations, and future steps.
+Together, these folders give a clear path from raw data to processed metrics and final visual insight
 
 ## Authors
 Harvey Barnes hab5455@psu.edu
