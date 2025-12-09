@@ -13,13 +13,11 @@ Our current plan is to refine the rolling metrics, build additional predictive f
 
 ## Repo Structure
 
-1. data – Contains cleaned datasets and any derived files created during the feature engineering process.
+1. datawrangling – Contains cleaned datasets and any derived files created during the feature engineering process.
 
-2. scripts – Includes R scripts for data cleaning, merging attendance with game logs, generating rolling metrics, and creating visualizations.
+2. attendance, visuals – creates images created with ggplot2, including rolling metric trends and win probability visuals.
 
-3. plots – Stores exported images created with ggplot2, including rolling metric trends and win probability visuals.
-
-4. README & plan documents   -Provide project context, goals, workflow explanations, and future steps.
+3. README & plan documents   -Provide project context, goals, workflow explanations, and future steps.
 Together, these folders give a clear path from raw data to processed metrics and final visual insight
 
 ## Authors
