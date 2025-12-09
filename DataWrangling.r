@@ -114,9 +114,3 @@ games_model <- home_stats %>%
     delta_to_diff  = avg_to_diff_home  - avg_to_diff_away
   )
 
-rf_mod <- ranger(
-  win_home ~ delta_win_pct + delta_pts_diff + delta_yds_diff + delta_to_diff,
-  data       = games_model,
-  probability = TRUE,
-  num.trees   = 500
-)
