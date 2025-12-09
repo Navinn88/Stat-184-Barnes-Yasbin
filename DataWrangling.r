@@ -87,10 +87,11 @@ games_rolling <- games_team %>%
 team_stats <- games_rolling %>%
   filter(games_played_prior >= 4) %>%
   select(
-    game_id, team, home_away, win,
+    game_id, year, week, team, home_away, win,
     win_pct,
     avg_pts_diff, avg_yds_diff, avg_to_diff
   )
+
 
 home_stats <- team_stats %>%
   filter(home_away == "home_team") %>%
