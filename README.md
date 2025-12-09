@@ -1,4 +1,4 @@
-# Project Title
+# Predicting NFL Winners and Attendance
 
 This project analyzes NFL attendance data and builds rolling performance metrics to explore how team level trends relate to the probability of winning the next game. The repository contains data cleaning, feature engineering, and visualization steps used to uncover game level and season level patterns.
 
