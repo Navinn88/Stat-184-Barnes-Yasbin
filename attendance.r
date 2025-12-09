@@ -1,39 +1,27 @@
-home_attendance_model <- games_model %>%
-  # keep just home-side features + year/week for join
+games_att_long <- games_att %>%
   select(
-    game_id, year, week,
-    team_home, win_home,
+    home_attendance,
     win_pct_home,
-    avg_pts_diff_home, avg_yds_diff_home, avg_to_diff_home
+    avg_pts_diff_home,
+    avg_yds_diff_home,
+    avg_to_diff_home,
+    delta_win_pct,
+    delta_pts_diff,
+    delta_yds_diff,
+    delta_to_diff
   ) %>%
-  inner_join(
-    attendance_clean,
-    by = c("team_home" = "team", "year" = "year", "week" = "week")
+  pivot_longer(
+    -home_attendance,
+    names_to = "metric",
+    values_to = "value"
   )
-ggplot(home_attendance_model,
-       aes(x = win_pct_home, y = weekly_attendance)) +
-  geom_point(alpha = 0.4) +
+
+ggplot(games_att_long, aes(value, home_attendance)) +
+  geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ metric, scales = "free_x") +
   labs(
-    x = "Home team win % (prior games)",
-    y = "Weekly home attendance",
-    title = "Relationship between home win% and attendance"
+    title = "Relationships Between Team Strength Metrics and Home Attendance",
+    x = "Metric value",
+    y = "Home attendance"
   )
-ggplot(home_attendance_model,
-       aes(x = avg_pts_diff_home, y = weekly_attendance)) +
-  geom_point(alpha = 0.4) +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(
-    x = "Avg point differential (prior games)",
-    y = "Weekly home attendance",
-    title = "Team strength vs attendance"
-  )
-
-mod_attendance <- lm(
-  weekly_attendance ~ win_pct_home + avg_pts_diff_home +
-    avg_yds_diff_home + avg_to_diff_home,
-  data = home_attendance_model
-)
-
-summary(mod_attendance)
-
