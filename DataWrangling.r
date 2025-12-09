@@ -1,12 +1,11 @@
-# Libraries ---------------------------------------------------------------
-
 library(readr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-
-# Data --------------------------------------------------------------------
+# -------------------------------------------------------------------
+# 1. Load data
+# -------------------------------------------------------------------
 
 attendance <- readr::read_csv(
   "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/attendance.csv"
@@ -20,8 +19,27 @@ games <- readr::read_csv(
   "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/games.csv"
 )
 
+# -------------------------------------------------------------------
+# 2. Clean attendance: make full team name & integer year/week
+# -------------------------------------------------------------------
+
+attendance_clean <- attendance %>%
+  mutate(
+    year      = as.integer(year),
+    week      = as.integer(week),
+    full_team = paste(team, team_name)  # "Arizona Cardinals"
+  )
+
+# -------------------------------------------------------------------
+# 3. Rebuild games_team from scratch (year/week as integers)
+# -------------------------------------------------------------------
+
 games_team <- games %>%
-  mutate(game_id = row_number()) %>%
+  mutate(
+    game_id = row_number(),
+    year    = as.integer(year),
+    week    = as.integer(week)
+  ) %>%
   pivot_longer(
     cols      = c(home_team, away_team),
     names_to  = "home_away",
@@ -40,7 +58,9 @@ games_team <- games %>%
   ) %>%
   arrange(team, year, week, date, time)
 
-# Rolling stats -----------------------------------------------------------
+# -------------------------------------------------------------------
+# 4. Rolling stats per team/year
+# -------------------------------------------------------------------
 
 games_rolling <- games_team %>%
   group_by(team, year) %>%
@@ -84,6 +104,10 @@ games_rolling <- games_team %>%
   ) %>%
   ungroup()
 
+# -------------------------------------------------------------------
+# 5. Home / away stats & games_model 
+# -------------------------------------------------------------------
+
 team_stats <- games_rolling %>%
   filter(games_played_prior >= 4) %>%
   select(
@@ -91,7 +115,6 @@ team_stats <- games_rolling %>%
     win_pct,
     avg_pts_diff, avg_yds_diff, avg_to_diff
   )
-
 
 home_stats <- team_stats %>%
   filter(home_away == "home_team") %>%
@@ -111,10 +134,37 @@ games_model <- home_stats %>%
     by = c("game_id", "year", "week")
   ) %>%
   mutate(
-    win_home       = win_home,  # optional
+    win_home       = win_home,
     delta_win_pct  = win_pct_home      - win_pct_away,
     delta_pts_diff = avg_pts_diff_home - avg_pts_diff_away,
     delta_yds_diff = avg_yds_diff_home - avg_yds_diff_away,
     delta_to_diff  = avg_to_diff_home  - avg_to_diff_away
   )
 
+# -------------------------------------------------------------------
+# 
+# -------------------------------------------------------------------
+
+attendance_home <- games_team %>%
+  filter(home_away == "home_team") %>%
+  left_join(
+    attendance_clean,
+    by = c("team" = "full_team", "year", "week")
+  ) %>%
+  transmute(
+    game_id,
+    team_home = team,          # full team name, e.g. "Arizona Cardinals"
+    year,
+    week,
+    home_attendance = weekly_attendance
+  )
+
+# 
+games_att <- games_model %>%
+  inner_join(
+    attendance_home,
+    by = c("game_id", "team_home", "year", "week")
+  )
+
+
+glimpse(games_att)
