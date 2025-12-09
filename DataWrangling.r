@@ -106,9 +106,12 @@ away_stats <- team_stats %>%
                 avg_pts_diff, avg_yds_diff, avg_to_diff))
 
 games_model <- home_stats %>%
-  inner_join(away_stats, by = "game_id") %>%
+  inner_join(
+    away_stats,
+    by = c("game_id", "year", "week")
+  ) %>%
   mutate(
-    win_home       = win_home,  # <- optional, can drop if you want
+    win_home       = win_home,  # optional
     delta_win_pct  = win_pct_home      - win_pct_away,
     delta_pts_diff = avg_pts_diff_home - avg_pts_diff_away,
     delta_yds_diff = avg_yds_diff_home - avg_yds_diff_away,
