@@ -3,9 +3,9 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-# -------------------------------------------------------------------
+
 # 1. Load data
-# -------------------------------------------------------------------
+
 
 attendance <- readr::read_csv(
   "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/attendance.csv"
@@ -30,9 +30,9 @@ attendance_clean <- attendance %>%
     full_team = paste(team, team_name)  # "Arizona Cardinals"
   )
 
-# -------------------------------------------------------------------
+
 # 3. Rebuild games_team from scratch (year/week as integers)
-# -------------------------------------------------------------------
+
 
 games_team <- games %>%
   mutate(
@@ -58,9 +58,9 @@ games_team <- games %>%
   ) %>%
   arrange(team, year, week, date, time)
 
-# -------------------------------------------------------------------
+
 # 4. Rolling stats per team/year
-# -------------------------------------------------------------------
+
 
 games_rolling <- games_team %>%
   group_by(team, year) %>%
@@ -104,9 +104,9 @@ games_rolling <- games_team %>%
   ) %>%
   ungroup()
 
-# -------------------------------------------------------------------
+
 # 5. Home / away stats & games_model 
-# -------------------------------------------------------------------
+
 
 team_stats <- games_rolling %>%
   filter(games_played_prior >= 4) %>%
