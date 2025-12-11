@@ -1,4 +1,4 @@
-# Long-format: one column for feature name, one for value
+# one column for feature name, one for value
 feature_long <- games_model %>%
   select(win_home, delta_win_pct, delta_pts_diff, delta_yds_diff, delta_to_diff) %>%
   pivot_longer(
