@@ -1,0 +1,283 @@
+---
+format: html
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+
+# 1. Load data
+
+
+attendance <- readr::read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/attendance.csv"
+)
+
+standings <- readr::read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/standings.csv"
+)
+
+games <- readr::read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-04/games.csv"
+)
+
+# -------------------------------------------------------------------
+# 2. Clean attendance: make full team name & integer year/week
+# -------------------------------------------------------------------
+
+attendance_clean <- attendance %>%
+  mutate(
+    year      = as.integer(year),
+    week      = as.integer(week),
+    full_team = paste(team, team_name)  # "Arizona Cardinals"
+  )
+
+
+# 3. Rebuild games_team from scratch (year/week as integers)
+
+
+games_team <- games %>%
+  mutate(
+    game_id = row_number(),
+    year    = as.integer(year),
+    week    = as.integer(week)
+  ) %>%
+  pivot_longer(
+    cols      = c(home_team, away_team),
+    names_to  = "home_away",
+    values_to = "team"
+  ) %>%
+  mutate(
+    yds_for       = if_else(team == winner, yds_win,  yds_loss),
+    yds_against   = if_else(team == winner, yds_loss, yds_win),
+    pts_for       = if_else(team == winner, pts_win,  pts_loss),
+    pts_against   = if_else(team == winner, pts_loss, pts_win),
+    turnovers_for     = if_else(team == winner, turnovers_win,  turnovers_loss),
+    turnovers_against = if_else(team == winner, turnovers_loss, turnovers_win),
+    win      = as.integer(team == winner & is.na(tie)),
+    loss     = as.integer(team != winner & is.na(tie)),
+    tie_flag = as.integer(!is.na(tie))
+  ) %>%
+  arrange(team, year, week, date, time)
+
+
+# 4. Rolling stats per team/year
+
+
+games_rolling <- games_team %>%
+  group_by(team, year) %>%
+  arrange(week, date, time, .by_group = TRUE) %>%
+  mutate(
+    games_played_prior = row_number() - 1L,
+
+    cum_yds_for       = lag(cumsum(yds_for),       default = 0),
+    cum_yds_against   = lag(cumsum(yds_against),   default = 0),
+
+    cum_wins          = lag(cumsum(win),          default = 0),
+    cum_losses        = lag(cumsum(loss),         default = 0),
+    cum_ties          = lag(cumsum(tie_flag),     default = 0),
+
+    cum_pts_for       = lag(cumsum(pts_for),       default = 0),
+    cum_pts_against   = lag(cumsum(pts_against),   default = 0),
+
+    cum_to_for        = lag(cumsum(turnovers_for),     default = 0),
+    cum_to_against    = lag(cumsum(turnovers_against), default = 0),
+
+    avg_yds_for       = if_else(games_played_prior > 0,
+                                cum_yds_for / games_played_prior, NA_real_),
+    avg_yds_against   = if_else(games_played_prior > 0,
+                                cum_yds_against / games_played_prior, NA_real_),
+    avg_yds_diff      = avg_yds_for - avg_yds_against,
+
+    avg_pts_for       = if_else(games_played_prior > 0,
+                                cum_pts_for / games_played_prior, NA_real_),
+    avg_pts_against   = if_else(games_played_prior > 0,
+                                cum_pts_against / games_played_prior, NA_real_),
+    avg_pts_diff      = avg_pts_for - avg_pts_against,
+
+    avg_to_for        = if_else(games_played_prior > 0,
+                                cum_to_for / games_played_prior, NA_real_),
+    avg_to_against    = if_else(games_played_prior > 0,
+                                cum_to_against / games_played_prior, NA_real_),
+    avg_to_diff       = avg_to_for - avg_to_against,
+
+    win_pct           = if_else(games_played_prior > 0,
+                                cum_wins / games_played_prior, NA_real_)
+  ) %>%
+  ungroup()
+
+
+# 5. Home / away stats & games_model 
+
+
+team_stats <- games_rolling %>%
+  filter(games_played_prior >= 4) %>%
+  select(
+    game_id, year, week, team, home_away, win,
+    win_pct,
+    avg_pts_diff, avg_yds_diff, avg_to_diff
+  )
+
+home_stats <- team_stats %>%
+  filter(home_away == "home_team") %>%
+  rename_with(~ paste0(.x, "_home"),
+              c(team, home_away, win, win_pct,
+                avg_pts_diff, avg_yds_diff, avg_to_diff))
+
+away_stats <- team_stats %>%
+  filter(home_away == "away_team") %>%
+  rename_with(~ paste0(.x, "_away"),
+              c(team, home_away, win, win_pct,
+                avg_pts_diff, avg_yds_diff, avg_to_diff))
+
+games_model <- home_stats %>%
+  inner_join(
+    away_stats,
+    by = c("game_id", "year", "week")
+  ) %>%
+  mutate(
+    win_home       = win_home,
+    delta_win_pct  = win_pct_home      - win_pct_away,
+    delta_pts_diff = avg_pts_diff_home - avg_pts_diff_away,
+    delta_yds_diff = avg_yds_diff_home - avg_yds_diff_away,
+    delta_to_diff  = avg_to_diff_home  - avg_to_diff_away
+  )
+
+# -------------------------------------------------------------------
+# 
+# -------------------------------------------------------------------
+
+attendance_home <- games_team %>%
+  filter(home_away == "home_team") %>%
+  left_join(
+    attendance_clean,
+    by = c("team" = "full_team", "year", "week")
+  ) %>%
+  transmute(
+    game_id,
+    team_home = team,          # full team name, e.g. "Arizona Cardinals"
+    year,
+    week,
+    home_attendance = weekly_attendance
+  )
+
+# 
+games_att <- games_model %>%
+  inner_join(
+    attendance_home,
+    by = c("game_id", "team_home", "year", "week")
+  )
+
+
+```
+
+```{r}
+# one column for feature name, one for value
+feature_long <- games_model %>%
+  select(win_home, delta_win_pct, delta_pts_diff, delta_yds_diff, delta_to_diff) %>%
+  pivot_longer(
+    cols = c(delta_win_pct, delta_pts_diff, delta_yds_diff, delta_to_diff),
+    names_to = "feature",
+    values_to = "value"
+  )
+
+ggplot(feature_long, aes(x = value, y = win_home)) +
+  geom_jitter(height = 0.05, width = 0, alpha = 0.1) +
+  geom_smooth(
+    method = "glm",
+    method.args = list(family = "binomial"),
+    se = FALSE
+  ) +
+  facet_wrap(~ feature, scales = "free_x") +
+  labs(
+    x = "Feature value (home - away)",
+    y = "Probability home team wins",
+    title = "How each feature relates to home win probability"
+  )
+coef_table_visuals <- feature_long %>%
+  group_by(feature) %>%
+  do({
+    fit <- glm(win_home ~ value, data = ., family = binomial)
+    as_tibble(summary(fit)$coefficients, rownames = "term") %>%
+      rename(estimate = Estimate,
+             std_error = `Std. Error`,
+             stat = `z value`,
+             p_value = `Pr(>|z|)`)
+  }) %>%
+  ungroup()
+
+coef_table_visuals
+```
+
+```{r}
+games_att_long <- games_att %>%
+  select(
+    home_attendance,
+    win_pct_home,
+    avg_pts_diff_home,
+    avg_yds_diff_home,
+    avg_to_diff_home,
+    delta_win_pct,
+    delta_pts_diff,
+    delta_yds_diff,
+    delta_to_diff
+  ) %>%
+  pivot_longer(
+    -home_attendance,
+    names_to = "metric",
+    values_to = "value"
+  )
+
+ggplot(games_att_long, aes(value, home_attendance)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ metric, scales = "free_x") +
+  labs(
+    title = "Relationships Between Team Strength Metrics and Home Attendance",
+    x = "Metric value",
+    y = "Home attendance"
+  )
+coef_table_attendance <- games_att_long %>%
+  group_by(metric) %>%
+  do({
+    fit <- lm(home_attendance ~ value, data = .)
+    as_tibble(summary(fit)$coefficients, rownames = "term") %>%
+      rename(estimate = Estimate,
+             std_error = `Std. Error`,
+             stat = `t value`,
+             p_value = `Pr(>|t|)`)
+  }) %>%
+  ungroup()
+
+coef_table_attendance
+```
+
+```{r}
+# Overall home win rate
+games_model %>% 
+  summarise(
+    n_games       = n(),
+    home_win_rate = mean(win_home, na.rm = TRUE)
+  )
+home_by_year <- games_model %>% 
+  group_by(year) %>% 
+  summarise(
+    n_games       = n(),
+    home_win_rate = mean(win_home, na.rm = TRUE)
+  )
+
+home_by_year
+
+ggplot(home_by_year, aes(x = year, y = home_win_rate)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Home Win Rate by Season",
+    x = "Season",
+    y = "Home win rate"
+  )
+```
