@@ -20,7 +20,7 @@ Our current plan is to refine the rolling metrics, build additional predictive f
 3. README & plan documents   -Provide project context, goals, workflow explanations, and future steps.
 Together, these folders give a clear path from raw data to processed metrics and final visual insight
 
-4. Data anylysis is in project-yasbin-barnes-final.pdf and 
+4. Data anylysis is in project-yasbin-barnes-final.pdf and Project-Yasbin-Barnes.qmd
 
 5. Slides presented in class are Under slides.pdf
 
